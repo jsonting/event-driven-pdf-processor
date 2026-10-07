@@ -39,7 +39,7 @@ public static class DocumentUploadEndpoint
                 .WithBucket(configuration.GetValue<string>("Minio:BucketName"))
                 .WithObject(documentUploadRequest.FileName).WithExpiry(60 * 6);
             var response = await minioClient.PresignedPutObjectAsync(presignedObject);
-            return TypedResults.Ok(response);
+            return TypedResults.Ok(new DocumentUploadResponse(response));
         }
         catch (Exception e)
         {
