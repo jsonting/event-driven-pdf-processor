@@ -41,10 +41,10 @@ public static class DocumentUploadEndpoint
             var response = await minioClient.PresignedPutObjectAsync(presignedObject);
             return TypedResults.Ok(new DocumentUploadResponse(response));
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            logger.LogError(e, e.Message);
-            return TypedResults.InternalServerError(e.Message);
+            logger.LogError(ex, ex.Message);
+            return TypedResults.InternalServerError(ex.Message);
         }
     }
 }
