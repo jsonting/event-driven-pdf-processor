@@ -11,10 +11,23 @@
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: doc_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    restart: unless-stopped
 
   minio:
     image: minio/minio:latest
@@ -29,7 +42,13 @@
       - minio_data:/data
     command: server /data --console-address ":9001"
     healthcheck:
-      test: [ "CMD", "sh", "-c", "wget -qO- http://localhost:9000/minio/health/live || exit 1" ]
+      test:
+        [
+          "CMD",
+          "sh",
+          "-c",
+          "wget -qO- http://localhost:9000/minio/health/live || exit 1",
+        ]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -42,7 +61,7 @@
     volumes:
       - ollama_data:/root/.ollama
     healthcheck:
-      test: [ "CMD", "sh", "-c", "wget -qO- http://localhost:11434/ || exit 1" ]
+      test: ["CMD", "sh", "-c", "wget -qO- http://localhost:11434/ || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -58,6 +77,7 @@
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=${POSTGRES_HOST};Port=${POSTGRES_PORT};Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__RabbitMQ=amqp://${RABBITMQ_USERNAME}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
       - Storage__ServiceUrl=http://minio:9000
       - Storage__AccessKey=${MINIO_ROOT_USER}
       - Storage__SecretKey=${MINIO_ROOT_PASSWORD}
@@ -71,8 +91,11 @@
         condition: service_healthy
       ollama:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
 volumes:
   postgres_data:
   minio_data:
   ollama_data:
+  rabbitmq_data:
